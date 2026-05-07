@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>namn.dev — portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-editor:    #1e1e2e;
+    --bg-sidebar:   #181825;
+    --bg-tab:       #313244;
+    --bg-tab-active:#1e1e2e;
+    --bg-hover:     #2a2a3e;
+    --gutter:       #45475a;
+    --gutter-bg:    #181825;
+    --border:       #313244;
+    --white:   #cdd6f4;
+    --comment: #9399b2;
+    --keyword: #cba6f7;
+    --type:    #89b4fa;
+    --string:  #a6e3a1;
+    --number:  #fab387;
+    --func:    #89dceb;
+    --var:     #f38ba8;
+    --op:      #89dceb;
+    --punc:    #9399b2;
+    --font: 'JetBrains Mono', 'Fira Code', monospace;
+    --ln-width: 52px;
+  }
+  html { font-size: 16px; }
+  body {
+    background: #11111b; color: var(--white);
+    font-family: var(--font);
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+
+  /* TITLE BAR - Windows style */
+  .titlebar {
+    background: #11111b; height: 32px;
+    display: flex; align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0; user-select: none;
+  }
+  .titlebar-name {
+    flex: 1; text-align: center;
+    font-size: 12px; color: var(--comment);
+    letter-spacing: 0.03em;
+  }
+  .win-btns { display: flex; height: 100%; margin-left: auto; flex-shrink: 0; }
+  .win-btn {
+    width: 46px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--comment); cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    border: none; background: none; font-family: var(--font);
+  }
+  .win-btn:hover { background: #313244; color: var(--white); }
+  .win-btn.close:hover { background: #c42b1c; color: #fff; }
+  .win-btn svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-linecap: round; }
+
+  /* TABS */
+  .tabs {
+    background: var(--bg-sidebar);
+    display: flex; border-bottom: 1px solid var(--border);
+    flex-shrink: 0; overflow-x: auto;
+  }
+  .tab {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 18px; height: 38px; font-size: 12.5px;
+    color: var(--comment); border-right: 1px solid var(--border);
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    text-decoration: none; background: var(--bg-tab);
+  }
+  .tab.active { background: var(--bg-tab-active); color: var(--white); border-top: 1px solid var(--keyword); }
+  .tab:hover:not(.active) { background: var(--bg-hover); color: var(--white); }
+
+  /* EDITOR LAYOUT */
+  .editor-shell { display: flex; flex: 1; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px; background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    padding: 12px 0; flex-shrink: 0; overflow-y: auto;
+  }
+  .sidebar-title { font-size: 10px; letter-spacing: 0.12em; color: var(--comment); padding: 0 16px 8px; text-transform: uppercase; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 16px; font-size: 12.5px; color: var(--comment);
+    cursor: pointer; transition: background 0.1s, color 0.1s; text-decoration: none;
+  }
+  .sidebar-item:hover { background: var(--bg-hover); color: var(--white); }
+  .sidebar-item.active { color: var(--white); background: #2a2a3e; }
+  .sidebar-folder { font-size: 10px; letter-spacing: 0.08em; color: var(--type); padding: 10px 16px 4px; text-transform: uppercase; }
+
+  /* EDITOR PANE */
+  .editor { flex: 1; overflow-y: auto; background: var(--bg-editor); padding: 16px 0 80px; position: relative; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CODE LINES */
+  .line {
+    display: flex; align-items: flex-start;
+    min-height: 22px; font-size: 14px; line-height: 22px;
+    transition: background 0.08s;
+  }
+  .line:hover { background: var(--bg-hover); }
+  .ln {
+    width: var(--ln-width); min-width: var(--ln-width);
+    text-align: right; padding-right: 20px;
+    color: var(--gutter); font-size: 12px; line-height: 22px;
+    user-select: none; background: var(--gutter-bg);
+    border-right: 1px solid var(--border); flex-shrink: 0;
+  }
+  .code { padding: 0 0 0 24px; flex: 1; white-space: pre-wrap; word-break: break-word; }
+
+  /* SYNTAX */
+  .kw  { color: var(--keyword); }
+  .ty  { color: var(--type); }
+  .fn  { color: var(--func); }
+  .st  { color: var(--string); }
+  .nm  { color: var(--number); }
+  .cm  { color: var(--comment); font-style: italic; }
+  .hi  { color: #b4b8cc; font-style: italic; }  /* brighter comment for important info */
+  .vc  { color: var(--var); }
+  .op  { color: var(--op); }
+  .pn  { color: var(--punc); }
+
+  /* CLICKABLE LINKS inside code */
+  a.cl {
+    color: var(--string); text-decoration: underline;
+    text-underline-offset: 2px; cursor: pointer;
+    transition: color 0.1s;
+  }
+  a.cl:hover { color: #c9f0c2; }
+
+  /* PROJECT GROUPS */
+  .proj-group { cursor: pointer; display: block; }
+  .proj-group:hover .line { background: #25253d; }
+
+  /* HOVER PREVIEW CARD */
+  .proj-preview {
+    display: none; position: fixed;
+    width: 320px; background: #11111b;
+    border: 1px solid var(--keyword); border-radius: 6px;
+    overflow: hidden; z-index: 200;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+    pointer-events: none;
+  }
+  .proj-preview img { width: 100%; height: 180px; object-fit: cover; display: block; }
+  .proj-preview-info { padding: 10px 14px 12px; font-size: 12px; border-top: 1px solid var(--border); }
+  .pv-name { color: var(--func); font-size: 13px; margin-bottom: 4px; }
+  .pv-desc { color: var(--comment); }
+
+  /* KONAMI / EASTER EGG OVERLAY */
+  #konami-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,10,20,0.97); z-index: 999;
+    flex-direction: column; align-items: center; justify-content: center;
+    font-family: var(--font); color: var(--string);
+  }
+  #konami-overlay.show { display: flex; }
+  #konami-overlay pre { font-size: 13px; line-height: 1.7; text-align: center; color: var(--string); white-space: pre; }
+  .k-msg { margin-top: 24px; color: var(--comment); font-size: 12px; max-width: 500px; text-align: center; }
+  .k-close {
+    margin-top: 20px; color: var(--keyword); font-size: 12px;
+    cursor: pointer; border: 1px solid var(--keyword);
+    padding: 6px 20px; border-radius: 4px;
+    background: none; font-family: var(--font);
+  }
+  .k-close:hover { background: var(--keyword); color: #1e1e2e; }
+
+  /* STATUS BAR */
+  .statusbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 24px; background: var(--keyword);
+    display: flex; align-items: center;
+    padding: 0 16px; gap: 20px;
+    font-size: 11px; color: #1e1e2e; z-index: 100;
+  }
+  .statusbar span { opacity: 0.85; }
+  #sb-hint { opacity: 0.55; cursor: default; }
+
+  ::-webkit-scrollbar { width: 8px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-sidebar); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    :root { --ln-width: 36px; }
+    .code { padding-left: 14px; font-size: 12px; }
+    .line { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE BAR (Windows) -->
+<div class="titlebar">
+  <div class="titlebar-name">portfolio.cpp — Visual Studio Code</div>
+  <div class="win-btns">
+    <button class="win-btn" title="Minimera" aria-label="Minimera">
+      <svg viewBox="0 0 10 2"><line x1="0" y1="1" x2="10" y2="1" stroke-width="1.2"/></svg>
+    </button>
+    <button class="win-btn" title="Maximera" aria-label="Maximera">
+      <svg viewBox="0 0 10 10"><rect x="0.6" y="0.6" width="8.8" height="8.8" stroke-width="1.2" fill="none" stroke="currentColor"/></svg>
+    </button>
+    <button class="win-btn close" title="Stäng" aria-label="Stäng" id="btn-close">
+      <svg viewBox="0 0 10 10"><line x1="0.5" y1="0.5" x2="9.5" y2="9.5" stroke-width="1.3"/><line x1="9.5" y1="0.5" x2="0.5" y2="9.5" stroke-width="1.3"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <a class="tab active" href="#" onclick="switchTab('about',this);return false;">📄 about_me.cpp</a>
+  <a class="tab" href="#" onclick="switchTab('experience',this);return false;">📄 experience.cpp</a>
+  <a class="tab" href="#" onclick="switchTab('projects',this);return false;">📄 projects.cpp</a>
+  <a class="tab" href="#" onclick="switchTab('contact',this);return false;">📄 contact.cpp</a>
+</div>
+
+<div class="editor-shell">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Explorer</div>
+    <div class="sidebar-folder">▾ portfolio/</div>
+    <a class="sidebar-item active" href="#" onclick="switchTab('about',null,this);return false;"><span>📄</span> about_me.cpp</a>
+    <a class="sidebar-item" href="#" onclick="switchTab('experience',null,this);return false;"><span>📄</span> experience.cpp</a>
+    <a class="sidebar-item" href="#" onclick="switchTab('projects',null,this);return false;"><span>📄</span> projects.cpp</a>
+    <a class="sidebar-item" href="#" onclick="switchTab('contact',null,this);return false;"><span>📄</span> contact.cpp</a>
+    <div class="sidebar-folder" style="margin-top:12px;">▾ refs/</div>
+    <a class="sidebar-item" href="https://github.com/" target="_blank"><span>🔗</span> github.lnk</a>
+    <a class="sidebar-item" href="https://itch.io/" target="_blank"><span>🔗</span> itchio.lnk</a>
+    <div class="sidebar-folder" style="margin-top:12px;">▾ secrets/</div>
+    <a class="sidebar-item" href="#" onclick="triggerKonami();return false;" style="color:#555770; font-size:11px;"><span>🔒</span> ???.exe</a>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="editor" id="editor">
+    <div class="section active" id="sec-about"><div id="ln-about"></div></div>
+    <div class="section" id="sec-experience"><div id="ln-experience"></div></div>
+    <div class="section" id="sec-projects"><div id="ln-projects"></div></div>
+    <div class="section" id="sec-contact"><div id="ln-contact"></div></div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <span>⎇ main</span>
+  <span id="sb-file">about_me.cpp</span>
+  <span>C++</span>
+  <span>UTF-8</span>
+  <span id="sb-hint">🎮 ↑↑↓↓←→←→BA</span>
+  <span style="margin-left:auto;">Ln <span id="sb-ln">1</span>, Col 1</span>
+</div>
+
+<!-- EASTER EGG OVERLAY -->
+<div id="konami-overlay">
+  <pre id="konami-art"></pre>
+  <div class="k-msg" id="konami-msg"></div>
+  <button class="k-close" onclick="document.getElementById('konami-overlay').classList.remove('show')">[ press START to continue ]</button>
+</div>
+
+<!-- PROJECT HOVER PREVIEW -->
+<div class="proj-preview" id="proj-preview">
+  <img id="prev-img" src="" alt="Project screenshot">
+  <div class="proj-preview-info">
+    <div class="pv-name" id="prev-name"></div>
+    <div class="pv-desc" id="prev-desc"></div>
+  </div>
+</div>
+
+<script>
+/* ─── PROJECT DATA ─── */
+var PROJECTS = [
+  {
+    id: 'voxelrift',
+    name: 'VoxelRift',
+    url: 'https://github.com/ditt-namn/voxelrift',
+    img: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=640&q=80',
+    desc: 'Voxel-baserad roguelite i C++ och OpenGL',
+    stack: ['C++', 'OpenGL', 'GLSL'],
+    stars: 412
+  },
+  {
+    id: 'entityspark',
+    name: 'EntitySpark',
+    url: 'https://github.com/ditt-namn/entityspark',
+    img: 'https://images.unsplash.com/photo-1614294149010-950b698f72c0?w=640&q=80',
+    desc: 'Lightweight ECS-bibliotek för indie-spel',
+    stack: ['C++17', 'CMake', 'GoogleTest'],
+    stars: 187
+  },
+  {
+    id: 'shadertoy-pack',
+    name: 'shadertoy-pack',
+    url: 'https://github.com/ditt-namn/shadertoy-pack',
+    img: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=640&q=80',
+    desc: 'Samling procedurella GLSL-shaders',
+    stack: ['GLSL', 'Shadertoy'],
+    stars: 93
+  }
+];
+
+/* ─── BUILD ABOUT ─── */
+(function(){
+  var L = [
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '<span class="cm">// about_me.cpp  —  Personal data & identity</span>',
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '',
+    '<span class="kw">#include</span> <span class="st">&lt;iostream&gt;</span>',
+    '<span class="kw">#include</span> <span class="st">&lt;string&gt;</span>',
+    '<span class="kw">#include</span> <span class="st">&lt;vector&gt;</span>',
+    '<span class="kw">#include</span> <span class="st">"GameDev.h"</span>',
+    '',
+    '<span class="kw">using namespace</span> <span class="ty">std</span><span class="pn">;</span>',
+    '',
+    '<span class="cm">// ── Basic identifiers ──────────────────────</span>',
+    '<span class="kw">const</span> <span class="ty">string</span> <span class="vc">name</span>            <span class="op">=</span> <span class="st">"Förnamn Efternamn"</span><span class="pn">;</span>',
+    '<span class="kw">const</span> <span class="ty">string</span> <span class="vc">title</span>           <span class="op">=</span> <span class="st">"Game Developer"</span><span class="pn">;</span>',
+    '<span class="kw">const</span> <span class="ty">string</span> <span class="vc">location</span>        <span class="op">=</span> <span class="st">"Stockholm, Sverige"</span><span class="pn">;</span>',
+    '<span class="kw">const</span> <span class="ty">int</span>    <span class="vc">age</span>             <span class="op">=</span> <span class="nm">41</span><span class="pn">;</span>',
+    '<span class="kw">const</span> <span class="ty">int</span>    <span class="vc">yearsInIndustry</span> <span class="op">=</span> <span class="nm">12</span><span class="pn">;</span>',
+    '<span class="kw">const</span> <span class="ty">bool</span>   <span class="vc">availableForWork</span><span class="op">=</span> <span class="kw">true</span><span class="pn">;</span>',
+    '',
+    '<span class="cm">// ── Engine expertise ───────────────────────</span>',
+    '<span class="ty">vector</span><span class="pn">&lt;</span><span class="ty">string</span><span class="pn">&gt;</span> <span class="vc">engines</span> <span class="op">=</span> <span class="pn">{</span>',
+    '  <span class="st">"Unreal Engine 5"</span><span class="pn">,</span> <span class="st">"Unity"</span><span class="pn">,</span> <span class="st">"Godot"</span><span class="pn">,</span> <span class="st">"Custom C++"</span>',
+    '<span class="pn">};</span>',
+    '',
+    '<span class="cm">// ── Core skills ────────────────────────────</span>',
+    '<span class="ty">vector</span><span class="pn">&lt;</span><span class="ty">string</span><span class="pn">&gt;</span> <span class="vc">skills</span> <span class="op">=</span> <span class="pn">{</span>',
+    '  <span class="st">"C++"</span><span class="pn">,</span> <span class="st">"C#"</span><span class="pn">,</span> <span class="st">"GLSL/HLSL"</span><span class="pn">,</span> <span class="st">"Blueprint"</span><span class="pn">,</span>',
+    '  <span class="st">"Physics simulation"</span><span class="pn">,</span> <span class="st">"Procedural generation"</span><span class="pn">,</span>',
+    '  <span class="st">"AI &amp; pathfinding"</span><span class="pn">,</span> <span class="st">"Shader authoring"</span><span class="pn">,</span> <span class="st">"Git"</span>',
+    '<span class="pn">};</span>',
+    '',
+    '<span class="cm">// ── Favorite genres (as dev) ───────────────</span>',
+    '<span class="ty">map</span><span class="pn">&lt;</span><span class="ty">string</span><span class="pn">,</span><span class="ty">int</span><span class="pn">&gt;</span> <span class="vc">favoriteGenres</span> <span class="op">=</span> <span class="pn">{</span>',
+    '  <span class="pn">{</span><span class="st">"Roguelite"</span><span class="pn">,</span>     <span class="nm">9999</span><span class="pn">},</span>  <span class="cm">// passion project territory</span>',
+    '  <span class="pn">{</span><span class="st">"Immersive sim"</span><span class="pn">,</span>  <span class="nm">9001</span><span class="pn">},</span>  <span class="cm">// it\'s over 9000</span>',
+    '  <span class="pn">{</span><span class="st">"Platformer"</span><span class="pn">,</span>    <span class="nm">8500</span><span class="pn">},</span>',
+    '  <span class="pn">{</span><span class="st">"Strategy"</span><span class="pn">,</span>      <span class="nm">7200</span><span class="pn">}</span>',
+    '<span class="pn">};</span>',
+    '',
+    '<span class="cm">// ── Bio ────────────────────────────────────</span>',
+    '<span class="ty">string</span> <span class="fn">getBio</span><span class="pn">()</span> <span class="pn">{</span>',
+    '  <span class="kw">return</span> <span class="st">"Spelutvecklare med passion för procedurella system,"</span>',
+    '       <span class="op">+</span> <span class="st">" renderingspipelines och tight gameplay-loop design."</span>',
+    '       <span class="op">+</span> <span class="st">" Jag tror att kreativitet och teknik är samma sak —"</span>',
+    '       <span class="op">+</span> <span class="st">" ett bra spel är ett elegant program."</span><span class="pn">;</span>',
+    '<span class="pn">}</span>',
+    '',
+    '<span class="kw">int</span> <span class="fn">main</span><span class="pn">()</span> <span class="pn">{</span>',
+    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="fn">getBio</span><span class="pn">()</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '  <span class="kw">return</span> <span class="nm">0</span><span class="pn">;</span>  <span class="cm">// no crashes today</span>',
+    '<span class="pn">}</span>',
+  ];
+  var html = L.map(function(c,i){ return row(i+1,c); }).join('');
+  document.getElementById('ln-about').innerHTML = html;
+})();
+
+/* ─── BUILD EXPERIENCE ─── */
+(function(){
+  function hi(t){ return '<span class="hi">'+t+'</span>'; }
+  var L = [
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '<span class="cm">// experience.cpp  —  Work history as functions</span>',
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '',
+    '<span class="kw">#include</span> <span class="st">"career.h"</span>',
+    '',
+    hi('/**'),
+    hi(' * @company  Spelstudio AB'),
+    hi(' * @role     Lead Game Developer'),
+    hi(' * @period   2020 – nu'),
+    hi(' */'),
+    '<span class="ty">Experience</span> <span class="fn">leadDev</span><span class="pn">()</span> <span class="pn">{</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">engine</span>   <span class="op">=</span> <span class="st">"Unreal Engine 5"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">genre</span>    <span class="op">=</span> <span class="st">"Action-RPG"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">int</span>    <span class="vc">teamSize</span> <span class="op">=</span> <span class="nm">14</span><span class="pn">;</span>',
+    '',
+    '  ' + hi('// Designade Nanite-baserat terrängssystem för open-world'),
+    '  ' + hi('// Ledde UE4 → UE5 migration (Lumen + Nanite pipeline)'),
+    '  ' + hi('// Byggde procedurellt dungeongenereringssystem (BSP + WFC)'),
+    '  ' + hi('// Ansvarade för multiplayer-nätverksarkitektur (Steam + EOS)'),
+    '',
+    '  <span class="kw">return</span> <span class="pn">{</span> <span class="vc">engine</span><span class="pn">,</span> <span class="vc">genre</span><span class="pn">,</span> <span class="vc">teamSize</span> <span class="pn">};</span>',
+    '<span class="pn">}</span>',
+    '',
+    hi('/**'),
+    hi(' * @company  Indie Games Co.'),
+    hi(' * @role     Game Programmer'),
+    hi(' * @period   2017 – 2020'),
+    hi(' */'),
+    '<span class="ty">Experience</span> <span class="fn">indieProg</span><span class="pn">()</span> <span class="pn">{</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">engine</span>  <span class="op">=</span> <span class="st">"Unity + Custom C++"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">int</span>    <span class="vc">shipped</span> <span class="op">=</span> <span class="nm">3</span><span class="pn">;</span>  ' + hi('// released Steam titles'),
+    '',
+    '  ' + hi('// 3 titlar shippade: roguelite, puzzle-platformer, strategy'),
+    '  ' + hi('// Custom ECS-arkitektur i C++ för prestandakritisk gameplay'),
+    '  ' + hi('// Shader-arbete: toon shading, volym-dimma, vattenrendering'),
+    '  ' + hi('// Steam API: achievements, leaderboards, cloud saves'),
+    '',
+    '  <span class="kw">return</span> <span class="pn">{</span> <span class="vc">engine</span><span class="pn">,</span> <span class="vc">shipped</span> <span class="pn">};</span>',
+    '<span class="pn">}</span>',
+    '',
+    hi('/**'),
+    hi(' * @school  Högskolan i Skövde'),
+    hi(' * @degree  B.Sc. Spelutveckling — Programmering'),
+    hi(' * @period  2012 – 2015'),
+    hi(' */'),
+    '<span class="ty">Education</span> <span class="fn">hig</span><span class="pn">()</span> <span class="pn">{</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">thesis</span> <span class="op">=</span> <span class="st">"Procedurella grottsystem med Wave Function Collapse"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">float</span>  <span class="vc">grade</span>  <span class="op">=</span> <span class="nm">4.8f</span><span class="pn">;</span>',
+    '  <span class="kw">return</span> <span class="pn">{</span> <span class="vc">thesis</span><span class="pn">,</span> <span class="vc">grade</span> <span class="pn">};</span>',
+    '<span class="pn">}</span>',
+  ];
+  var html = L.map(function(c,i){ return row(i+1,c); }).join('');
+  document.getElementById('ln-experience').innerHTML = html;
+})();
+
+/* ─── BUILD PROJECTS (with hover preview + click) ─── */
+(function(){
+  var header = [
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '<span class="cm">// projects.cpp  —  Selected games & tools</span>',
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '',
+    '<span class="kw">#include</span> <span class="st">"github.h"</span>',
+    '',
+    '<span class="kw">struct</span> <span class="ty">Project</span> <span class="pn">{</span>',
+    '  <span class="ty">string</span> <span class="vc">name</span><span class="pn">;</span>',
+    '  <span class="ty">string</span> <span class="vc">description</span><span class="pn">;</span>',
+    '  <span class="ty">string</span> <span class="vc">url</span><span class="pn">;</span>',
+    '  <span class="ty">vector</span><span class="pn">&lt;</span><span class="ty">string</span><span class="pn">&gt;</span> <span class="vc">stack</span><span class="pn">;</span>',
+    '  <span class="ty">int</span>    <span class="vc">stars</span><span class="pn">;</span>',
+    '<span class="pn">};</span>',
+    '',
+    '<span class="ty">vector</span><span class="pn">&lt;</span><span class="ty">Project</span><span class="pn">&gt;</span> <span class="fn">getProjects</span><span class="pn">()</span> <span class="pn">{</span>',
+    '  <span class="kw">return</span> <span class="pn">{</span>',
+  ];
+  var footer = [
+    '  <span class="pn">};</span>',
+    '<span class="pn">}</span>',
+    '',
+    '<span class="cm">// Hover over any project to preview — click to open</span>',
+  ];
+
+  var ln = 1;
+  var html = header.map(function(c){ return row(ln++, c); }).join('');
+
+  PROJECTS.forEach(function(p, pi) {
+    var stacks = p.stack.map(function(s){ return '<span class="st">"'+s+'"</span>'; }).join('<span class="pn">, </span>');
+    var plines = [
+      '    <span class="pn">{</span>',
+      '      <span class="pn">.</span><span class="vc">name</span>        <span class="op">=</span> <span class="st">"'+p.name+'"</span><span class="pn">,</span>',
+      '      <span class="pn">.</span><span class="vc">description</span> <span class="op">=</span> <span class="st">"'+p.desc+'"</span><span class="pn">,</span>',
+      '      <span class="pn">.</span><span class="vc">url</span>         <span class="op">=</span> <span class="st">"'+p.url+'"</span><span class="pn">,</span>',
+      '      <span class="pn">.</span><span class="vc">stack</span>       <span class="op">=</span> <span class="pn">{</span>'+stacks+'<span class="pn">},</span>',
+      '      <span class="pn">.</span><span class="vc">stars</span>       <span class="op">=</span> <span class="nm">'+p.stars+'</span>',
+      '    <span class="pn">}'+(pi<PROJECTS.length-1?',':'')+'</span>',
+    ];
+    html += '<div class="proj-group" data-proj="'+p.id+'" tabindex="0" role="link" aria-label="'+p.name+'">';
+    plines.forEach(function(c){ html += row(ln++, c); });
+    html += '</div>';
+  });
+
+  html += footer.map(function(c){ return row(ln++, c); }).join('');
+  document.getElementById('ln-projects').innerHTML = html;
+
+  // Attach hover + click
+  var preview  = document.getElementById('proj-preview');
+  var prevImg  = document.getElementById('prev-img');
+  var prevName = document.getElementById('prev-name');
+  var prevDesc = document.getElementById('prev-desc');
+
+  document.querySelectorAll('.proj-group').forEach(function(g) {
+    var p = PROJECTS.find(function(x){ return x.id === g.dataset.proj; });
+    if (!p) return;
+    g.addEventListener('mouseenter', function(e){ prevImg.src=p.img; prevName.textContent=p.name; prevDesc.textContent=p.desc; preview.style.display='block'; pos(e); });
+    g.addEventListener('mousemove', pos);
+    g.addEventListener('mouseleave', function(){ preview.style.display='none'; });
+    g.addEventListener('click', function(){ window.open(p.url,'_blank'); });
+    g.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') window.open(p.url,'_blank'); });
+  });
+
+  function pos(e) {
+    var x = e.clientX+24, y = e.clientY-90;
+    if (x+330>window.innerWidth) x=e.clientX-340;
+    if (y+240>window.innerHeight) y=window.innerHeight-250;
+    if (y<0) y=10;
+    preview.style.left=x+'px'; preview.style.top=y+'px';
+  }
+})();
+
+/* ─── BUILD CONTACT (clickable links) ─── */
+(function(){
+  function lnk(href,label){ return '<a class="cl" href="'+href+'" target="_blank">'+label+'</a>'; }
+  function mail(addr){ return '<a class="cl" href="mailto:'+addr+'">'+addr+'</a>'; }
+  var L = [
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '<span class="cm">// contact.cpp  —  Reach me here</span>',
+    '<span class="cm">// ═══════════════════════════════════════════</span>',
+    '',
+    '<span class="kw">#include</span> <span class="st">&lt;network&gt;</span>',
+    '',
+    '<span class="kw">namespace</span> <span class="ty">contact</span> <span class="pn">{</span>',
+    '',
+    '  <span class="cm">// ── Primary channels ───────────────────────</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">email</span>    <span class="op">=</span> <span class="st">"'+mail('hej@dittnamn.dev')+'"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">github</span>   <span class="op">=</span> <span class="st">"'+lnk('https://github.com/','github.com/ditt-namn')+'"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">linkedin</span> <span class="op">=</span> <span class="st">"'+lnk('https://linkedin.com/in/','linkedin.com/in/dittnamn')+'"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">itchio</span>   <span class="op">=</span> <span class="st">"'+lnk('https://itch.io/','dittnamn.itch.io')+'"</span><span class="pn">;</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">twitter</span>  <span class="op">=</span> <span class="st">"'+lnk('https://x.com/','@dittnamn')+'"</span><span class="pn">;</span>',
+    '',
+    '  <span class="cm">// ── Response time ──────────────────────────</span>',
+    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">responseTime</span> <span class="op">=</span> <span class="st">"&lt; 24h på vardagar"</span><span class="pn">;</span>',
+    '',
+    '  <span class="cm">// ── Open to ────────────────────────────────</span>',
+    '  <span class="ty">vector</span><span class="pn">&lt;</span><span class="ty">string</span><span class="pn">&gt;</span> <span class="vc">openTo</span> <span class="op">=</span> <span class="pn">{</span>',
+    '    <span class="st">"Spelstudiojobb (lead / senior)"</span><span class="pn">,</span>',
+    '    <span class="st">"Indie-samarbeten"</span><span class="pn">,</span>',
+    '    <span class="st">"Game-jam teams"</span><span class="pn">,</span>',
+    '    <span class="st">"Open-source game tech"</span>',
+    '  <span class="pn">};</span>',
+    '',
+    '  <span class="ty">void</span> <span class="fn">sendMessage</span><span class="pn">(</span><span class="ty">string</span> <span class="vc">msg</span><span class="pn">)</span> <span class="pn">{</span>',
+    '    <span class="cm">// Maila direkt: hej@dittnamn.dev</span>',
+    '    <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="st">"Svarar ASAP: "</span> <span class="op">&lt;&lt;</span> <span class="vc">msg</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '  <span class="pn">}</span>',
+    '',
+    '<span class="pn">}</span>  <span class="cm">// namespace contact</span>',
+  ];
+  var html = L.map(function(c,i){ return row(i+1,c); }).join('');
+  document.getElementById('ln-contact').innerHTML = html;
+})();
+
+/* ─── SHARED ROW BUILDER ─── */
+function row(n, code) {
+  return '<div class="line"><div class="ln">'+n+'</div><div class="code">'+(code||' ')+'</div></div>';
+}
+
+/* ─── TAB SWITCHING ─── */
+function switchTab(id, tabEl, sidebarEl) {
+  document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('sec-'+id).classList.add('active');
+
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  if (tabEl) tabEl.classList.add('active');
+  else document.querySelectorAll('.tab').forEach(function(t){
+    if (t.getAttribute('onclick') && t.getAttribute('onclick').indexOf("'"+id+"'")!==-1) t.classList.add('active');
+  });
+
+  document.querySelectorAll('.sidebar-item').forEach(function(s){ s.classList.remove('active'); });
+  if (sidebarEl) sidebarEl.classList.add('active');
+  else document.querySelectorAll('.sidebar-item').forEach(function(s){
+    if (s.getAttribute('onclick') && s.getAttribute('onclick').indexOf("'"+id+"'")!==-1) s.classList.add('active');
+  });
+
+  var names={about:'about_me.cpp',experience:'experience.cpp',projects:'projects.cpp',contact:'contact.cpp'};
+  document.getElementById('sb-file').textContent = names[id]||id;
+}
+
+/* ─── STATUS BAR LINE NUMBER ─── */
+document.getElementById('editor').addEventListener('mouseover', function(e){
+  var l = e.target.closest('.line');
+  if (!l) return;
+  var ln = l.querySelector('.ln');
+  if (ln) document.getElementById('sb-ln').textContent = ln.textContent.trim();
+});
+
+/* ─── EASTER EGG: KONAMI CODE ↑↑↓↓←→←→BA ─── */
+var QUOTES = [
+  '"It\'s dangerous to go alone! Take this." — The Legend of Zelda',
+  '"Stay a while and listen." — Deckard Cain, Diablo II',
+  '"The cake is a lie." — Portal',
+  '"You died." — Dark Souls  (och lite av din själ med det)',
+  '"You must construct additional pylons." — StarCraft',
+  '"A man chooses. A slave obeys." — BioShock',
+  '"Wake me... when you need me." — Halo 3',
+  '"Thank you Mario! But our princess is in another castle." — Super Mario Bros',
+  '"What is a man? A miserable little pile of secrets!" — Castlevania',
+  '"Do a barrel roll!" — Star Fox 64',
+];
+var ASCII_LOGO =
+'  ██████╗  █████╗ ███╗   ███╗███████╗\n'+
+'  ██╔════╝ ██╔══██╗████╗ ████║██╔════╝\n'+
+'  ██║  ███╗███████║██╔████╔██║█████╗  \n'+
+'  ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝  \n'+
+'  ╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗\n'+
+'   ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝\n'+
+'         D E V  U N L O C K E D\n'+
+'      ★  +9999 XP  ★  Achievement!\n';
+
+function triggerKonami(){
+  var q = QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  document.getElementById('konami-art').textContent = ASCII_LOGO;
+  document.getElementById('konami-msg').textContent = q;
+  document.getElementById('konami-overlay').classList.add('show');
+}
+
+var seq=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+var pos2=0;
+document.addEventListener('keydown', function(e){
+  if(e.key===seq[pos2]){ pos2++; if(pos2===seq.length){ pos2=0; triggerKonami(); } }
+  else { pos2=(e.key===seq[0]?1:0); }
+});
+
+/* ─── EASTER EGG: Close button = BSOD ─── */
+document.getElementById('btn-close').addEventListener('click', function(){
+  document.getElementById('konami-art').textContent =
+    ':(\n\n'+
+    'Your portfolio ran into a problem\n'+
+    'and needs to restart. We\'re collecting\n'+
+    'some error info, and then we\'ll respawn.\n\n'+
+    'Stop code:  GAME_DEV_PASSION_OVERFLOW\n\n'+
+    '████████████████████░  97% complete\n\n'+
+    'För mer info: google.com/sök?q=jobb+till+mig';
+  document.getElementById('konami-msg').textContent = '(skämtar — stäng i webbläsarens flik istället 😄)';
+  document.getElementById('konami-overlay').classList.add('show');
+});
+</script>
+</body>
+</html>

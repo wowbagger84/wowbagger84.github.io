@@ -171,11 +171,13 @@ a.cl:hover { color: #c9f0c2; }
   position: fixed; bottom: 0; left: 0; right: 0;
   height: 24px; background: var(--keyword);
   display: flex; align-items: center;
-  padding: 0 16px; gap: 20px;
+  padding: 0 12px; gap: 16px;
   font-size: 11px; color: #1e1e2e; z-index: 100;
+  overflow: hidden; white-space: nowrap;
 }
-.statusbar span { opacity: 0.85; }
+.statusbar span { opacity: 0.85; flex-shrink: 0; }
 #sb-hint { opacity: 0.55; cursor: default; }
+.sb-pos { margin-left: auto; }
 
 ::-webkit-scrollbar { width: 8px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-sidebar); }
@@ -183,7 +185,19 @@ a.cl:hover { color: #c9f0c2; }
 
 @media (max-width: 700px) {
   .sidebar { display: none; }
-  :root { --ln-width: 36px; }
-  .code { padding-left: 14px; font-size: 12px; }
+
+  /* Line numbers: slightly narrower + keep visible */
+  :root { --ln-width: 32px; }
+  .ln { padding-right: 8px; font-size: 10px; }
+  .code { padding-left: 10px; font-size: 12px; }
   .line { font-size: 12px; }
+
+  /* Status bar: hide Konami hint and branch on narrow screens */
+  #sb-hint { display: none; }
+  .sb-branch { display: none; }
+}
+
+@media (max-width: 480px) {
+  /* Also hide language span on very narrow screens */
+  .sb-lang { display: none; }
 }

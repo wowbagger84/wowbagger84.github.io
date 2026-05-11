@@ -60,12 +60,12 @@
 
 <!-- STATUS BAR -->
 <div class="statusbar">
-  <span>⎇ main</span>
+  <span class="sb-branch">⎇ main</span>
   <span id="sb-file">about_me.cpp</span>
-  <span>C++</span>
+  <span class="sb-lang">C++</span>
   <span>UTF-8</span>
   <span id="sb-hint">🎮 ↑↑↓↓←→←→BA</span>
-  <span style="margin-left:auto;">Ln <span id="sb-ln">1</span>, Col 1</span>
+  <span class="sb-pos" style="margin-left:auto;">Ln <span id="sb-ln">1</span>, Col <span id="sb-col">1</span></span>
 </div>
 
 <!-- EASTER EGG OVERLAY -->
@@ -128,12 +128,12 @@ var PROJECTS = [
     '<span class="kw">using namespace</span> <span class="ty">std</span><span class="pn">;</span>',
     '',
     '<span class="cm">// ── Basic identifiers ──────────────────────</span>',
-    '<span class="ty">string</span> <span class="vc">name</span>             <span class="op">=</span> <span class="st">"Robert Wowbagger Esbjörnsson"</span><span class="pn">;</span>',
-    '<span class="ty">string</span> <span class="vc">title</span>            <span class="op">=</span> <span class="st">"Game Developer"</span><span class="pn">;</span>',
-    '<span class="ty">string</span> <span class="vc">location</span>         <span class="op">=</span> <span class="st">"Göteborg, Sverige"</span><span class="pn">;</span>',
-    '<span class="ty">int</span>    <span class="vc">age</span>              <span class="op">=</span> <span class="nm">41</span><span class="pn">;</span>',
-    '<span class="ty">int</span>    <span class="vc">yearsInIndustry</span>  <span class="op">=</span> <span class="nm">22</span><span class="pn">;</span>',
-    '<span class="ty">bool</span>   <span class="vc">availableForWork</span> <span class="op">=</span> <span class="kw">true</span><span class="pn">;</span>',
+    '<span class="ty">string</span> <span class="vc">name</span>     <span class="op">=</span> <span class="st">"Robert Wowbagger Esbjörnsson"</span><span class="pn">;</span>',
+    '<span class="ty">string</span> <span class="vc">title</span>    <span class="op">=</span> <span class="st">"Game Developer"</span><span class="pn">;</span>',
+    '<span class="ty">string</span> <span class="vc">location</span> <span class="op">=</span> <span class="st">"Göteborg, Sverige"</span><span class="pn">;</span>',
+    '<span class="ty">int</span>    <span class="vc">age</span>      <span class="op">=</span> <span class="nm">41</span><span class="pn">;</span>',
+    '<span class="ty">int</span>    <span class="vc">yearsExp</span> <span class="op">=</span> <span class="nm">22</span><span class="pn">;</span>',
+    '<span class="ty">bool</span>   <span class="vc">forHire</span>  <span class="op">=</span> <span class="kw">true</span><span class="pn">;</span>',
     '',
     '<span class="cm">// ── Engine expertise ───────────────────────</span>',
     '<span class="ty">vector</span><span class="pn">&lt;</span><span class="ty">string</span><span class="pn">&gt;</span> <span class="vc">engines</span> <span class="op">=</span> <span class="pn">{</span>',
@@ -374,12 +374,21 @@ function switchTab(id, tabEl, sidebarEl) {
   document.getElementById('sb-file').textContent = names[id]||id;
 }
 
-/* ─── STATUS BAR LINE NUMBER ─── */
-document.getElementById('editor').addEventListener('mouseover', function(e){
+/* ─── STATUS BAR Ln + Col TRACKING ─── */
+document.getElementById('editor').addEventListener('mousemove', function(e){
   var l = e.target.closest('.line');
   if (!l) return;
-  var ln = l.querySelector('.ln');
-  if (ln) document.getElementById('sb-ln').textContent = ln.textContent.trim();
+  // Line number
+  var lnEl = l.querySelector('.ln');
+  if (lnEl) document.getElementById('sb-ln').textContent = lnEl.textContent.trim();
+  // Column: distance from left edge of .code div, divided by approx monospace char width
+  var codeEl = l.querySelector('.code');
+  if (codeEl) {
+    var rect = codeEl.getBoundingClientRect();
+    var charWidth = 8.4; // JetBrains Mono 14px ≈ 8.4px per char
+    var col = Math.max(1, Math.round((e.clientX - rect.left) / charWidth) + 1);
+    document.getElementById('sb-col').textContent = col;
+  }
 });
 
 /* ─── EASTER EGG: KONAMI CODE ↑↑↓↓←→←→BA ─── */

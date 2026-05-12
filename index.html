@@ -84,6 +84,21 @@
   </div>
 </div>
 
+<!-- FAKE TERMINAL (Ctrl+B) -->
+<div id="terminal-overlay">
+  <div class="term-window">
+    <div class="term-titlebar">
+      <span class="term-title">▸ robert@portfolio: ~/about_me.cpp</span>
+      <button class="term-close" onclick="closeTerm()" aria-label="Stäng terminal">✕</button>
+    </div>
+    <div class="term-body" id="term-body"></div>
+    <div class="term-input-row">
+      <span class="term-prompt">robert@portfolio:~$</span>
+      <span class="term-cursor" id="term-cursor">█</span>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ─── PROJECT DATA ─── */
 var PROJECTS = [
@@ -164,8 +179,22 @@ var PROJECTS = [
     '<span class="pn">}</span>',
     '',
     '<span class="kw">int</span> <span class="fn">main</span><span class="pn">()</span> <span class="pn">{</span>',
-    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="fn">getBio</span><span class="pn">()</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
-    '  <span class="kw">return</span> <span class="nm">0</span><span class="pn">;</span>  <span class="cm">// no crashes today</span>',
+    '  <span class="cm">// ── Print intro ────────────────────────────</span>',
+    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="st">"Hi, I am "</span>   <span class="op">&lt;&lt;</span> <span class="vc">name</span>     <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="st">"Role:     "</span>   <span class="op">&lt;&lt;</span> <span class="vc">title</span>    <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="st">"Location: "</span>   <span class="op">&lt;&lt;</span> <span class="vc">location</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="st">"Exp:      "</span>   <span class="op">&lt;&lt;</span> <span class="vc">yearsExp</span> <span class="op">&lt;&lt;</span> <span class="st">" years"</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="st">"For hire: "</span>   <span class="op">&lt;&lt;</span> <span class="pn">(</span><span class="vc">forHire</span> <span class="op">?</span> <span class="st">"yes"</span> <span class="op">:</span> <span class="st">"no"</span><span class="pn">)</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '  <span class="ty">cout</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span> <span class="op">&lt;&lt;</span> <span class="fn">getBio</span><span class="pn">()</span> <span class="op">&lt;&lt;</span> <span class="ty">endl</span><span class="pn">;</span>',
+    '',
+    '  <span class="cm">// ── Main loop ──────────────────────────────</span>',
+    '  <span class="kw">while</span> <span class="pn">(</span><span class="kw">true</span><span class="pn">) {</span>',
+    '    <span class="fn">eat</span><span class="pn">(</span><span class="st">"pizza"</span><span class="pn">);</span>              <span class="cm">// fuel the engine</span>',
+    '    <span class="fn">code</span><span class="pn">(</span><span class="vc">engines</span><span class="pn">,</span> <span class="vc">skills</span><span class="pn">);</span>    <span class="cm">// the good part</span>',
+    '    <span class="fn">playtest</span><span class="pn">();</span>               <span class="cm">// also the good part</span>',
+    '    <span class="fn">fixOneBug</span><span class="pn">();</span>              <span class="cm">// introduces two new ones</span>',
+    '    <span class="fn">sleep</span><span class="pn">(</span><span class="nm">6</span><span class="pn">);</span>                  <span class="cm">// hours, not seconds</span>',
+    '  <span class="pn">}</span>  <span class="cm">// unreachable: return 0</span>',
     '<span class="pn">}</span>',
   ];
   var html = L.map(function(c,i){ return row(i+1,c); }).join('');
@@ -321,10 +350,10 @@ var PROJECTS = [
     '<span class="kw">namespace</span> <span class="ty">contact</span> <span class="pn">{</span>',
     '',
     '  <span class="cm">// ── Primary channels ───────────────────────</span>',
-    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">email</span>    <span class="op">=</span> <span class="st">"'+mail('robert@secretmission.se')+'"</span><span class="pn">;</span>',
-    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">github</span>   <span class="op">=</span> <span class="st">"'+lnk('https://github.com/wowbagger84','github.com/wowbagger84')+'"</span><span class="pn">;</span>',
-    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">linkedin</span> <span class="op">=</span> <span class="st">"'+lnk('https://linkedin.com/in/robert.esbjornsson','linkedin.com/in/robert.esbjornsson')+'"</span><span class="pn">;</span>',
-    '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">itchio</span>   <span class="op">=</span> <span class="st">"'+lnk('https://wowbagger84.itch.io/','wowbagger84.itch.io')+'"</span><span class="pn">;</span>',
+    '  <span class="ty">string</span> <span class="vc">email</span>    <span class="op">=</span> <span class="st">"'+mail('robert@secretmission.se')+'"</span><span class="pn">;</span>',
+    '  <span class="ty">string</span> <span class="vc">github</span>   <span class="op">=</span> <span class="st">"'+lnk('https://github.com/wowbagger84','github.com/wowbagger84')+'"</span><span class="pn">;</span>',
+    '  <span class="ty">string</span> <span class="vc">itchio</span>   <span class="op">=</span> <span class="st">"'+lnk('https://wowbagger84.itch.io/','wowbagger84.itch.io')+'"</span><span class="pn">;</span>',
+    '  <span class="ty">string</span> <span class="vc">linkedin</span> <span class="op">=</span> <span class="st">"'+lnk('https://linkedin.com/in/robert.esbjornsson','linkedin.com/in/robert.esbjornsson')+'"</span><span class="pn">;</span>',
     '',
     '  <span class="cm">// ── Response time ──────────────────────────</span>',
     '  <span class="kw">const</span> <span class="ty">string</span> <span class="vc">responseTime</span> <span class="op">=</span> <span class="st">"&lt; 24h på vardagar"</span><span class="pn">;</span>',
@@ -427,6 +456,129 @@ document.addEventListener('keydown', function(e){
   if(e.key===seq[pos2]){ pos2++; if(pos2===seq.length){ pos2=0; triggerKonami(); } }
   else { pos2=(e.key===seq[0]?1:0); }
 });
+
+/* ─── CTRL+B: FAKE TERMINAL BUILD ─── */
+var termOpen = false;
+
+function closeTerm() {
+  document.getElementById('terminal-overlay').classList.remove('show');
+  termOpen = false;
+}
+
+function openTerm() {
+  if (termOpen) { closeTerm(); return; }
+  termOpen = true;
+  var overlay = document.getElementById('terminal-overlay');
+  var body    = document.getElementById('term-body');
+  body.innerHTML = '';
+  overlay.classList.add('show');
+
+  // Data pulled from the about section variables
+  var data = {
+    name:     'Robert Wowbagger Esbjörnsson',
+    title:    'Game Developer',
+    location: 'Göteborg, Sverige',
+    yearsExp: 22,
+    forHire:  true,
+    engines:  ['Unreal Engine 5', 'Unity', 'Godot', 'Custom C++'],
+    skills:   ['C++', 'C#', 'GLSL/HLSL', 'Blueprint', 'Procedural generation', 'Shader authoring'],
+    bio:      'Spelutvecklare med passion för procedurella system, renderingspipelines och tight gameplay-loop design. Jag tror att kreativitet och teknik är samma sak — ett bra spel är ett elegant program.'
+  };
+
+  // The "compiled" output lines that main() would print
+  var output = [
+    { t: 'cmd',  text: 'g++ -O2 -std=c++20 about_me.cpp -o portfolio && ./portfolio' },
+    { t: 'info', text: '' },
+    { t: 'info', text: 'Compiling about_me.cpp...' },
+    { t: 'ok',   text: '✓  Build succeeded  (0 errors, 0 warnings)' },
+    { t: 'info', text: '' },
+    { t: 'info', text: '── Running main() ────────────────────────────' },
+    { t: 'info', text: '' },
+    { t: 'out',  text: 'Hi, I am    ' + data.name },
+    { t: 'out',  text: 'Role:       ' + data.title },
+    { t: 'out',  text: 'Location:   ' + data.location },
+    { t: 'out',  text: 'Exp:        ' + data.yearsExp + ' years' },
+    { t: 'out',  text: 'For hire:   ' + (data.forHire ? 'yes ← contact me!' : 'no') },
+    { t: 'info', text: '' },
+    { t: 'out',  text: data.bio },
+    { t: 'info', text: '' },
+    { t: 'info', text: '── Entering main loop ────────────────────────' },
+    { t: 'loop', text: '[iteration 8211]  eat("pizza")' },
+    { t: 'loop', text: '[iteration 8211]  code({ ' + data.engines.slice(0,2).join(', ') + ' }, skills)' },
+    { t: 'loop', text: '[iteration 8211]  playtest()' },
+    { t: 'loop', text: '[iteration 8211]  fixOneBug()   → 2 new bugs created' },
+    { t: 'loop', text: '[iteration 8211]  sleep(6)      // zzz...' },
+    { t: 'info', text: '' },
+    { t: 'warn', text: '^C  Interrupted by user  (loop continues in real life)' },
+    { t: 'info', text: '' },
+    { t: 'info', text: 'Press Ctrl+B again or click ✕ to close.' },
+  ];
+
+  var colors = {
+    cmd:  '#89dceb',
+    info: '#6c7086',
+    ok:   '#a6e3a1',
+    out:  '#cdd6f4',
+    loop: '#fab387',
+    warn: '#f9e2af',
+  };
+
+  // Typewriter: print each line with a short delay
+  var delays = { cmd: 60, info: 18, ok: 30, out: 22, loop: 28, warn: 40 };
+  var i = 0;
+
+  function printNext() {
+    if (i >= output.length) return;
+    var item = output[i++];
+    var line = document.createElement('div');
+    line.className = 'term-line';
+    line.style.color = colors[item.t] || '#cdd6f4';
+
+    if (item.t === 'cmd') {
+      line.innerHTML = '<span style="color:#cba6f7">robert@portfolio</span>'
+                     + '<span style="color:#9399b2">:~$</span> '
+                     + item.text;
+    } else {
+      line.textContent = item.text;
+    }
+
+    body.appendChild(line);
+    body.scrollTop = body.scrollHeight;
+
+    // Typewriter delay based on line type + small jitter
+    var delay = delays[item.t] + Math.random() * 30;
+    // Longer pause after the compile line and after build ok
+    if (item.t === 'cmd') delay = 600;
+    if (item.t === 'ok')  delay = 400;
+    if (item.t === 'warn') delay = 300;
+    setTimeout(printNext, delay);
+  }
+
+  // Small startup pause then begin
+  setTimeout(printNext, 150);
+}
+
+// Ctrl+B listener — prevent browser bookmark shortcut
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+    e.preventDefault();
+    openTerm();
+  }
+});
+
+// Also add a sidebar shortcut item
+(function() {
+  var secretFolder = document.querySelector('.sidebar-item[onclick*="triggerKonami"]');
+  if (!secretFolder) return;
+  var btn = document.createElement('a');
+  btn.className = 'sidebar-item';
+  btn.href = '#';
+  btn.style.cssText = 'color:#555770; font-size:11px;';
+  btn.innerHTML = '<span>⚡</span> build.sh';
+  btn.setAttribute('title', 'Ctrl+B');
+  btn.addEventListener('click', function(e){ e.preventDefault(); openTerm(); });
+  secretFolder.parentNode.insertBefore(btn, secretFolder.nextSibling);
+})();
 
 /* ─── EASTER EGG: Close button = BSOD ─── */
 document.getElementById('btn-close').addEventListener('click', function(){
